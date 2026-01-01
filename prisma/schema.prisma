@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  BARBER
+  SHOP_OWNER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PAID
+  REFUNDED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  barber        Barber?
+  ownedShop     Shop?      @relation("ShopOwner")
+  appointments  Appointment[] @relation("CustomerAppointments")
+  noShowFlag    NoShowFlag?
+  payments      Payment[]
+}
+
+model Shop {
+  id        String   @id @default(uuid())
+  name      String
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId String @unique
+  owner   User   @relation("ShopOwner", fields: [ownerId], references: [id])
+
+  barbers  Barber[]
+  services Service[]
+}
+
+model Barber {
+  id        String   @id @default(uuid())
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  services      Service[]
+  availability  Availability[]
+  appointments  Appointment[]
+}
+
+model Service {
+  id              String   @id @default(uuid())
+  name            String
+  durationMinutes Int
+  priceCents      Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  barberId String?
+  barber   Barber? @relation(fields: [barberId], references: [id])
+
+  appointments Appointment[]
+}
+
+model Availability {
+  id         String   @id @default(uuid())
+  dayOfWeek  Int      // 0 = Sunday, 6 = Saturday
+  startTime  String   // "09:00"
+  endTime    String   // "17:00"
+  isException Boolean @default(false)
+  date       DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  barberId String
+  barber   Barber @relation(fields: [barberId], references: [id])
+}
+
+model Appointment {
+  id        String            @id @default(uuid())
+  startTime DateTime
+  endTime   DateTime
+  status    AppointmentStatus @default(BOOKED)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  barberId String
+  barber   Barber @relation(fields: [barberId], references: [id])
+
+  customerId String
+  customer   User @relation("CustomerAppointments", fields: [customerId], references: [id])
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  cancellationReason String?
+
+  payment Payment?
+}
+
+model NoShowFlag {
+  id            String   @id @default(uuid())
+  count         Int      @default(0)
+  lastFlaggedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customerId String @unique
+  customer   User   @relation(fields: [customerId], references: [id])
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  stripePaymentIntentId String        @unique
+  amountCents           Int
+  currency              String
+  status                PaymentStatus @default(REQUIRES_PAYMENT)
+
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id])
+
+  appointmentId String?      @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
