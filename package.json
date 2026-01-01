@@ -6,7 +6,8 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
+    "start": "node dist/src/server.js",
     "dev": "ts-node src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prisma:generate": "prisma generate",

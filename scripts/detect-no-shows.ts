@@ -43,6 +43,7 @@ async function main() {
   console.log('Done.');
 
   await prisma.$disconnect();
+  process.exit(0); // Explicit success exit for cron
 }
 
 main().catch(async (error) => {

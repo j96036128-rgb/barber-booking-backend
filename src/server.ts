@@ -13,7 +13,12 @@ import { webhookRoutes } from './routes/webhooks';
 import { validatePaymentConfig } from './config/payments';
 import { verifyStripeConnection } from './lib/stripe';
 
-const server = Fastify({ logger: true });
+const server = Fastify({
+  logger: true,
+  // Trust proxy headers (X-Forwarded-*) for correct client IP and protocol detection
+  // Required when running behind Render/Fly/NGINX/Cloudflare - HTTPS is terminated upstream
+  trustProxy: true,
+});
 
 // CORS configuration - restrict to allowed origins only
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
@@ -58,7 +63,9 @@ const start = async () => {
     await server.register(appointmentRoutes);
     await server.register(paymentRoutes);
 
-    await server.listen({ port: 3000, host: '0.0.0.0' });
+    const port = parseInt(process.env.PORT || '3000', 10);
+    await server.listen({ port, host: '0.0.0.0' });
+    server.log.info(`Server listening on port ${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

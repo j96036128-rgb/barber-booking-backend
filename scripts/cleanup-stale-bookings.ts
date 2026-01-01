@@ -51,7 +51,7 @@ async function cleanupStaleBookings() {
   if (staleAppointments.length === 0) {
     console.log('No stale bookings to clean up.');
     await prisma.$disconnect();
-    return;
+    process.exit(0);
   }
 
   // Cancel each stale appointment
@@ -92,6 +92,7 @@ async function cleanupStaleBookings() {
   console.log(`Summary: ${cancelled}/${staleAppointments.length} appointments cancelled`);
 
   await prisma.$disconnect();
+  process.exit(0); // Explicit success exit for cron
 }
 
 cleanupStaleBookings().catch(async (error) => {
